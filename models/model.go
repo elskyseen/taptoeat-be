@@ -10,7 +10,7 @@ import (
 var DB *gorm.DB
 
 func CreateConnection(dbname string, user string, pass string) {
-	conn := user + ":" + pass + "@tcp(127.0.0.1:3306)/" + dbname
+	conn := user + ":" + pass + "@tcp(127.0.0.1:3306)/" + dbname + "?parseTime=true"
 
 	db, err := gorm.Open(mysql.Open(conn), &gorm.Config{})
 

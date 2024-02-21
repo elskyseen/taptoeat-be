@@ -9,6 +9,7 @@ import (
 
 	"github.com/badoux/checkmail"
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -116,4 +117,50 @@ func Signup(c *gin.Context) {
 	}
 }
 
+func SignIn(c *gin.Context) {
+	var user models.User
+	var body struct {
+		Email    string
+		Username string
+		Password string
+	}
 
+	if c.Bind(&body) != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": "Invalid Request",
+			"code":    http.StatusBadRequest,
+		})
+		return
+	}
+
+	replaceUsername := strings.ToLower(strings.Replace(body.Username, " ", "", -1))
+
+	result := models.DB.Where("username = ?", replaceUsername).Or("email = ?", body.Email).First(&user)
+	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(body.Password))
+
+	if result.Error != nil || err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": "Login Failed",
+			"code":    http.StatusBadRequest,
+		})
+		return
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"uid": user.Id,
+		"exp": time.Now().Add(time.Hour * 24 * 30).Unix(),
+	})
+	tokenString, err := token.SignedString([]byte(os.Getenv("SECRET_KEY")))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": err.Error(),
+			"code":    http.StatusBadRequest,
+		})
+		return
+	}
+	c.SetCookie("Authorization", tokenString, 3600, "/", "", false, true)
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Success sigin",
+		"code":    http.StatusOK,
+	})
+}
