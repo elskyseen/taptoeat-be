@@ -11,9 +11,9 @@ import (
 )
 
 func Middleware(c *gin.Context) {
-	tokenString, err := c.Cookie("Authorization")
+	tokenString := c.GetHeader("Authorization")
 
-	if err != nil {
+	if tokenString == "" {
 		c.AbortWithStatus(http.StatusUnauthorized)
 	}
 
