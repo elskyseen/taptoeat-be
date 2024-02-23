@@ -79,7 +79,7 @@ func Signup(c *gin.Context) {
 	}
 
 	// Validate username exist
-	if checkExistUsername := validations.IsExistField(body.Email, user.Email); checkExistUsername {
+	if checkExistUsername := validations.IsExistField(body.Username, user.Username); checkExistUsername {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"message": "Username already exist, please using other name",
 			"code":    http.StatusBadRequest,
@@ -186,9 +186,9 @@ func SignIn(c *gin.Context) {
 		})
 		return
 	}
-	c.SetCookie("Authorization", tokenString, 3600, "/", "", false, true)
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Success sigin",
+		"token":   tokenString,
 		"code":    http.StatusOK,
 	})
 }
