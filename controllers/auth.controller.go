@@ -5,9 +5,9 @@ import (
 	"os"
 	"strings"
 	"taptoeat-be/models"
+	"taptoeat-be/validations"
 	"time"
 
-	"github.com/badoux/checkmail"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
@@ -40,29 +40,57 @@ func Signup(c *gin.Context) {
 	// Find username or email from body
 	models.DB.Where("username = ?", replaceUsername).Or("email = ?", body.Email).First(&user)
 
-	// Validate email exist
-	if user.Email == body.Email {
+	// Validate username min 3 character
+	if checkValidCharacter := validations.IsValidChar(replaceUsername, 3, 12); !checkValidCharacter {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"message": "Email already exists, please using other email",
+			"message": "Username min 3 character or less than 12 character",
 			"code":    http.StatusBadRequest,
+			"len":     len(replaceUsername),
 		})
 		return
 	}
 
-	// Validate username exist
-	if user.Username == replaceUsername {
+	// Check username can't include simbol
+	if usernameIsValid := validations.IsValidUsername(replaceUsername); usernameIsValid {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"message": "Username already exists, please using other name",
+			"message": "Username must be valid",
 			"code":    http.StatusBadRequest,
 		})
 		return
 	}
 
 	// Check email is valid
-	err := checkmail.ValidateFormat(body.Email)
-	if err != nil {
+	if emailIsValid := validations.IsValidEmail(body.Email); !emailIsValid {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"message": "Email must be valid",
+			"code":    http.StatusBadRequest,
+			"is":      emailIsValid,
+		})
+		return
+	}
+
+	// Validate email exist
+	if checkExistEmail := validations.IsExistField(body.Email, user.Email); checkExistEmail {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": "Email already exist, please using other email",
+			"code":    http.StatusBadRequest,
+		})
+		return
+	}
+
+	// Validate username exist
+	if checkExistUsername := validations.IsExistField(body.Email, user.Email); checkExistUsername {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": "Username already exist, please using other name",
+			"code":    http.StatusBadRequest,
+		})
+		return
+	}
+
+	// Check length from passwordd
+	if isValidPassword := validations.IsValidChar(body.Password, 7, 16); !isValidPassword {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": "Passwords can't be less than 8 and must not be more than 16",
 			"code":    http.StatusBadRequest,
 		})
 		return
